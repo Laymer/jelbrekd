@@ -30,6 +30,7 @@
 		B8C4ED0322922C66008F9068 /* PFOffs.c in Sources */ = {isa = PBXBuildFile; fileRef = B8C4ED0122922C66008F9068 /* PFOffs.c */; };
 		B8C4ED0622922DF8008F9068 /* OffsetHolder.m in Sources */ = {isa = PBXBuildFile; fileRef = B8C4ED0422922DF8008F9068 /* OffsetHolder.m */; };
 		B8C4ED0922922E94008F9068 /* tfp0_holder.c in Sources */ = {isa = PBXBuildFile; fileRef = B8C4ED0722922E94008F9068 /* tfp0_holder.c */; };
+		B8E08BA32295D04B00A86C75 /* offsetof.c in Sources */ = {isa = PBXBuildFile; fileRef = B8E08BA12295D04B00A86C75 /* offsetof.c */; };
 		B8FAF9B0226BFA0000EF2B7E /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = B8FAF9AF226BFA0000EF2B7E /* main.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 /* End PBXBuildFile section */
 
@@ -92,6 +93,8 @@
 		B8C4ED0722922E94008F9068 /* tfp0_holder.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = tfp0_holder.c; sourceTree = "<group>"; };
 		B8C4ED0822922E94008F9068 /* tfp0_holder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = tfp0_holder.h; sourceTree = "<group>"; };
 		B8CEB08E2288F6F600F1D181 /* cs_blob.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cs_blob.h; sourceTree = "<group>"; };
+		B8E08BA12295D04B00A86C75 /* offsetof.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = offsetof.c; sourceTree = "<group>"; };
+		B8E08BA22295D04B00A86C75 /* offsetof.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = offsetof.h; sourceTree = "<group>"; };
 		B8FAF9AB226BFA0000EF2B7E /* test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = test; sourceTree = BUILT_PRODUCTS_DIR; };
 		B8FAF9AF226BFA0000EF2B7E /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -141,6 +144,8 @@
 				B8C4ED0522922DF8008F9068 /* OffsetHolder.h */,
 				B8C4ED0722922E94008F9068 /* tfp0_holder.c */,
 				B8C4ED0822922E94008F9068 /* tfp0_holder.h */,
+				B8E08BA12295D04B00A86C75 /* offsetof.c */,
+				B8E08BA22295D04B00A86C75 /* offsetof.h */,
 			);
 			path = PFOffs;
 			sourceTree = "<group>";
@@ -335,6 +340,7 @@
 				B80B7034226C2A06007CF0B7 /* parameters.c in Sources */,
 				B80B705F226C2D0B007CF0B7 /* kexecute.c in Sources */,
 				B85D065D22887F510081831B /* sandbox.c in Sources */,
+				B8E08BA32295D04B00A86C75 /* offsetof.c in Sources */,
 				B8FAF9B0226BFA0000EF2B7E /* main.m in Sources */,
 				B8BE4281229239030025612A /* vnode_utils.m in Sources */,
 				B80B7046226C2B4C007CF0B7 /* kernel_call.c in Sources */,

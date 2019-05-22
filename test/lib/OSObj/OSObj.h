@@ -6,13 +6,15 @@
 #define OSArray_ItemCount(arr) ReadKernel32(arr+0x14)
 #define OSArray_ItemBuffer(arr) ReadKernel64(arr+32)
 
+// see osobject.c for info
+
 int OSDictionary_SetItem(uint64_t dict, const char *key, uint64_t val);
 uint64_t OSDictionary_GetItem(uint64_t dict, const char *key);
 int OSDictionary_Merge(uint64_t dict, uint64_t aDict);
 void OSArray_RemoveObject(uint64_t array, unsigned int idx);
 uint64_t OSArray_GetObject(uint64_t array, unsigned int idx);
 int OSArray_Merge(uint64_t array, uint64_t aArray);
-uint64_t OSUnserializeXML(const char* buffer);
+uint64_t OSUnserializeXML(const char *buffer);
 
 void OSObject_Release(uint64_t osobject);
 void OSObject_Retain(uint64_t osobject);

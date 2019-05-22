@@ -28,8 +28,9 @@
 #include "libproc.h"
 #include "OSObj.h"
 #include "sandbox.h"
+#include "offsetof.h"
 
-#define LOG(str, args...) fprintf(stderr, "[*] " str "\n", ##args)
+#define LOGME(str, args...) fprintf(stderr, "[*] " str "\n", ##args)
 
 
 uint64_t get_proc_struct_for_pid(pid_t pid)
@@ -47,7 +48,7 @@ uint64_t get_proc_struct_for_pid(pid_t pid)
 uint64_t kmem_alloc(uint64_t size)
 {
     if (get_tfp_port() == MACH_PORT_NULL) {
-        LOG("attempt to allocate kernel memory before any kernel memory write primitives available");
+        LOGME("attempt to allocate kernel memory before any kernel memory write primitives available");
         return 0;
     }
     
@@ -56,7 +57,7 @@ uint64_t kmem_alloc(uint64_t size)
     mach_vm_size_t ksize = round_page_kernel(size);
     err = mach_vm_allocate(get_tfp_port(), &addr, ksize, VM_FLAGS_ANYWHERE);
     if (err != KERN_SUCCESS) {
-        LOG("unable to allocate kernel memory via tfp0: %s %x", mach_error_string(err), err);
+        LOGME("unable to allocate kernel memory via tfp0: %s %x", mach_error_string(err), err);
         return 0;
     }
     return addr;
@@ -81,7 +82,7 @@ int kstrcmp(uint64_t kstr, const char* str) {
 bool kmem_free(uint64_t kaddr, uint64_t size)
 {
     if (get_tfp_port() == MACH_PORT_NULL) {
-        LOG("attempt to deallocate kernel memory before any kernel memory write primitives available");
+        LOGME("attempt to deallocate kernel memory before any kernel memory write primitives available");
         return false;
     }
     
@@ -89,7 +90,7 @@ bool kmem_free(uint64_t kaddr, uint64_t size)
     mach_vm_size_t ksize = round_page_kernel(size);
     err = mach_vm_deallocate(get_tfp_port(), kaddr, ksize);
     if (err != KERN_SUCCESS) {
-        LOG("unable to deallocate kernel memory via tfp0: %s %x", mach_error_string(err), err);
+        LOGME("unable to deallocate kernel memory via tfp0: %s %x", mach_error_string(err), err);
         return false;
     }
     return true;
@@ -97,12 +98,12 @@ bool kmem_free(uint64_t kaddr, uint64_t size)
 
 void getOffsets()
 {
-    LOG("Getting offsets from file...");
+    LOGME("Getting offsets from file...");
     #define getCachedOff(val, name) do { \
     NSMutableDictionary *offsets = [NSMutableDictionary dictionaryWithContentsOfFile:@"/slice/offsets.plist"]; \
     uint64_t offsetName = (uint64_t)strtoull([offsets[@name] UTF8String], NULL, 16); \
     SETOFFSET(val, offsetName); \
-    LOG("OFFSET " name ": 0x%016llx", GETOFFSET(val)); \
+    LOGME("OFFSET " name ": 0x%016llx", GETOFFSET(val)); \
     } while (false)
     
     getCachedOff(kernel_task, "KernelTask");
@@ -139,20 +140,20 @@ uint64_t zm_fix_addr(uint64_t addr) {
     if (zm_hdr.start == 0) {
         // xxx ReadKernel64(0) ?!
         // uint64_t zone_map_ref = find_zone_map_ref();
-        LOG("zone_map_ref: %llx ", GETOFFSET(zone_map_ref));
+        LOGME("zone_map_ref: %llx ", GETOFFSET(zone_map_ref));
         uint64_t zone_map = ReadKernel64(GETOFFSET(zone_map_ref));
-        LOG("zone_map: %llx ", zone_map);
+        LOGME("zone_map: %llx ", zone_map);
         // hdr is at offset 0x10, mutexes at start
         size_t r = kreadOwO(zone_map + 0x10, &zm_hdr, sizeof(zm_hdr));
-        LOG("zm_range: 0x%llx - 0x%llx (read 0x%zx, exp 0x%zx)", zm_hdr.start, zm_hdr.end, r, sizeof(zm_hdr));
+        LOGME("zm_range: 0x%llx - 0x%llx (read 0x%zx, exp 0x%zx)", zm_hdr.start, zm_hdr.end, r, sizeof(zm_hdr));
         
         if (r != sizeof(zm_hdr) || zm_hdr.start == 0 || zm_hdr.end == 0) {
-            LOG("kread of zone_map failed!");
+            LOGME("kread of zone_map failed!");
             exit(EXIT_FAILURE);
         }
         
         if (zm_hdr.end - zm_hdr.start > 0x100000000) {
-            LOG("zone_map is too big, sorry.");
+            LOGME("zone_map is too big, sorry.");
             exit(EXIT_FAILURE);
         }
     }
@@ -186,7 +187,7 @@ uint64_t task_self_addr()
 {
     if (cached_task_self_addr == 0) {
         cached_task_self_addr = have_kmem_read() && found_offs ? get_address_of_port(getpid(), mach_task_self()) : find_port_address(mach_task_self(), MACH_MSG_TYPE_COPY_SEND);
-        LOG("task self: 0x%llx", cached_task_self_addr);
+        LOGME("task self: 0x%llx", cached_task_self_addr);
     }
     return cached_task_self_addr;
 }
@@ -207,7 +208,7 @@ size_t kreadOwO(uint64_t where, void* p, size_t size)
                                     (mach_vm_address_t)p + offset,
                                     &sz);
         if (rv || sz == 0) {
-            LOG("error reading kernel @%p", (void*)(offset + where));
+            LOGME("error reading kernel @%p", (void*)(offset + where));
             break;
         }
         offset += sz;
@@ -229,7 +230,7 @@ size_t kwriteOwO(uint64_t where, const void* p, size_t size)
                            (mach_vm_offset_t)p + offset,
                            (mach_msg_type_number_t)chunk);
         if (rv) {
-            LOG("error writing kernel @%p", (void*)(offset + where));
+            LOGME("error writing kernel @%p", (void*)(offset + where));
             break;
         }
         offset += chunk;
@@ -240,7 +241,7 @@ size_t kwriteOwO(uint64_t where, const void* p, size_t size)
 bool wkbuffer(uint64_t kaddr, void* buffer, size_t length)
 {
     if (get_tfp_port() == MACH_PORT_NULL) {
-        LOG("attempt to write to kernel memory before any kernel memory write primitives available");
+        LOGME("attempt to write to kernel memory before any kernel memory write primitives available");
         return false;
     }
     
@@ -282,7 +283,7 @@ uint64_t ReadKernel64(uint64_t kaddr)
         return rk64_via_tfp0(kaddr);
     }
     
-    LOG("attempt to read kernel memory but no kernel memory read primitives available");
+    LOGME("attempt to read kernel memory but no kernel memory read primitives available");
     
     return 0;
 }
@@ -293,7 +294,7 @@ uint32_t ReadKernel32(uint64_t kaddr)
         return rk32_via_tfp0(kaddr);
     }
     
-    LOG("attempt to read kernel memory but no kernel memory read primitives available");
+    LOGME("attempt to read kernel memory but no kernel memory read primitives available");
     
     return 0;
 }
@@ -301,7 +302,7 @@ uint32_t ReadKernel32(uint64_t kaddr)
 void WriteKernel64(uint64_t kaddr, uint64_t val)
 {
     if (get_tfp_port() == MACH_PORT_NULL) {
-        LOG("attempt to write to kernel memory before any kernel memory write primitives available");
+        LOGME("attempt to write to kernel memory before any kernel memory write primitives available");
         return;
     }
     wkbuffer(kaddr, &val, sizeof(val));
@@ -310,7 +311,7 @@ void WriteKernel64(uint64_t kaddr, uint64_t val)
 void WriteKernel32(uint64_t kaddr, uint32_t val)
 {
     if (get_tfp_port() == MACH_PORT_NULL) {
-        LOG("attempt to write to kernel memory before any kernel memory write primitives available");
+        LOGME("attempt to write to kernel memory before any kernel memory write primitives available");
         return;
     }
     wkbuffer(kaddr, &val, sizeof(val));
@@ -337,14 +338,14 @@ int fixupexec(char *file) {
 
 int fixupdylib(char *dylib) {
     #define VSHARED_DYLD    0x000200
-    LOG("Fixing up dylib %s", dylib);
-    LOG("Getting vnode");
+    LOGME("Fixing up dylib %s", dylib);
+    LOGME("Getting vnode");
     uint64_t vnode = vnodeForPath(dylib);
     if (!vnode) {
-        LOG("Failed to get vnode!");
+        LOGME("Failed to get vnode!");
         return -1;
     }
-    LOG("vnode of %s: 0x%llx", dylib, vnode);
+    LOGME("vnode of %s: 0x%llx", dylib, vnode);
     uint32_t v_flags = ReadKernel32(vnode + off_v_flags);
     
     if (v_flags & VSHARED_DYLD) {
@@ -352,9 +353,9 @@ int fixupdylib(char *dylib) {
         return 0;
     }
     
-    LOG("old v_flags: 0x%x", v_flags);
+    LOGME("old v_flags: 0x%x", v_flags);
     uint32_t new_vflags = v_flags | VSHARED_DYLD;
-    LOG("new v_flags: 0x%x", new_vflags);
+    LOGME("new v_flags: 0x%x", new_vflags);
     
     if (v_flags != new_vflags)
     {
@@ -416,6 +417,7 @@ static const char *exc_key = "com.apple.security.exception.files.absolute-path.r
 //About the only shit we EVER use.
 
 void set_csflags(uint64_t proc) {
+    LOGME("SET_CSFLAGS");
     uint32_t csflags = ReadKernel32(proc + koffset(KSTRUCT_OFFSET_PROC_P_CSFLAGS));
     csflags = (csflags | CS_PLATFORM_BINARY | CS_INSTALLER | CS_GET_TASK_ALLOW | CS_DEBUGGED) & ~(CS_RESTRICT | CS_HARD | CS_KILL);
     WriteKernel32(proc + koffset(KSTRUCT_OFFSET_PROC_P_CSFLAGS), csflags);
@@ -423,11 +425,12 @@ void set_csflags(uint64_t proc) {
 
 
 void set_tfplatform(uint64_t proc) {
-    uint64_t task_struct_addr = ReadKernel64(proc + koffset(KSTRUCT_OFFSET_PROC_TASK));
-    uint32_t task_t_flags = ReadKernel32(task_struct_addr + koffset(KSTRUCT_OFFSET_TASK_TFLAGS));
-    task_t_flags |= TF_PLATFORM;
-    WriteKernel32(task_struct_addr + koffset(KSTRUCT_OFFSET_TASK_TFLAGS), task_t_flags);
+    uint64_t task = ReadKernel64(proc + off_task);
+    uint32_t t_flags = ReadKernel32(task + off_t_flags);
+    t_flags |= TF_PLATFORM;
+    WriteKernel32(task+off_t_flags, t_flags);
 }
+
 
 uint64_t exception_osarray_cache = 0;
 uint64_t get_exception_osarray(void) {
@@ -446,19 +449,28 @@ uint64_t get_exception_osarray(void) {
 }
 
 void set_amfi_entitlements(uint64_t proc) {
-    uint64_t proc_ucred = ReadKernel64(proc + off_p_ucred);
+    uint64_t proc_ucred = ReadKernel64(proc+0xf8);
+    uint64_t amfi_entitlements = ReadKernel64(ReadKernel64(proc_ucred+0x78)+0x8);
+    
+    OSDictionary_SetItem(amfi_entitlements, "get-task-allow", GETOFFSET(OSBoolean_True));
+    OSDictionary_SetItem(amfi_entitlements, "com.apple.private.skip-library-validation", GETOFFSET(OSBoolean_True));
+}
+
+
+void set_amfi_entitlements_old(uint64_t proc) {
+    uint64_t proc_ucred = ReadKernel64(proc + offsetof_p_ucred);
     uint64_t amfi_entitlements = ReadKernel64(ReadKernel64(proc_ucred + 0x78) + 0x8);
     
     int rv = 0;
     
     rv = OSDictionary_SetItem(amfi_entitlements, "get-task-allow", GETOFFSET(OSBoolean_True));
     if (rv != 1) {
-        fprintf(stderr, "failed to set get-task-allow within amfi_entitlements!");;
+        LOGME("failed to set get-task-allow within amfi_entitlements!");;
     }
     
     rv = OSDictionary_SetItem(amfi_entitlements, "com.apple.private.skip-library-validation", GETOFFSET(OSBoolean_True));
     if (rv != 1) {
-        fprintf(stderr, "failed to set com.apple.private.skip-library-validation within amfi_entitlements!");
+        LOGME("failed to set com.apple.private.skip-library-validation within amfi_entitlements!");
     }
     
     uint64_t present = OSDictionary_GetItem(amfi_entitlements, exc_key);
@@ -467,7 +479,7 @@ void set_amfi_entitlements(uint64_t proc) {
         rv = OSDictionary_SetItem(amfi_entitlements, exc_key, get_exception_osarray());
     } else if (present != get_exception_osarray()) {
         unsigned int itemCount = OSArray_ItemCount(present);
-        fprintf(stderr, "got item count: %d", itemCount);
+        LOGME("got item count: %d", itemCount);
         
         BOOL foundEntitlements = NO;
         
@@ -476,7 +488,7 @@ void set_amfi_entitlements(uint64_t proc) {
         for (int i = 0; i < itemCount; i++) {
             uint64_t item = ReadKernel64(itemBuffer + (i * sizeof(void *)));
             char *entitlementString = OSString_CopyString(item);
-            fprintf(stderr, "found ent string: %s", entitlementString);
+            LOGME("found ent string: %s", entitlementString);
             if (strcmp(entitlementString, "/Library/") == 0) {
                 foundEntitlements = YES;
                 free(entitlementString);
@@ -495,10 +507,9 @@ void set_amfi_entitlements(uint64_t proc) {
     }
     
     if (rv != 1) {
-        fprintf(stderr, "Setting exc FAILED! amfi_entitlements: 0x%llx present: 0x%llx", amfi_entitlements, present);
+        LOGME("Setting exc FAILED! amfi_entitlements: 0x%llx present: 0x%llx", amfi_entitlements, present);
     }
 }
-
 
 
 
@@ -564,13 +575,17 @@ int setcsflagsandplatformize(int pid) {
     uint64_t proc = get_proc_struct_for_pid(pid);
     if (proc == 0)
     {
-        LOG("Error getting proc for PID: %i", pid);
+        LOGME("Error getting proc for PID: %i", pid);
         return -1;
     } else {
         set_csflags(proc);
+        LOGME("TFPLATFORM");
         set_tfplatform(proc);
+        LOGME("AMFI_ENTS");
         set_amfi_entitlements(proc);
+        LOGME("SANDBOX_EXT");
         set_sandbox_extensions(proc);
+        LOGME("CSBLOB");
         set_csblob(proc);
     }
     

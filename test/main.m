@@ -85,7 +85,7 @@ uint64_t kernel_base;
 
 extern unsigned offsetof_ip_kobject;
 
-int runserver(){
+int runserver() {
     NSLog(@"[jelbrekd] Process Start!");
     
     kern_return_t err = host_get_special_port(mach_host_self(), HOST_LOCAL_NODE, 4, &tfpzero);
